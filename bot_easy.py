@@ -7,7 +7,7 @@ from function import Interface
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
 
-API_TOKEN = "638630435:AAHf0P4SXPG5JS_6k9e4cgjN9fLdqPvuVvY"
+API_TOKEN = "API_TOKEN"
 bot = telebot.TeleBot(API_TOKEN)
 server = "hypnos.feralhosting.com"
 signature = "server_feralhosting"
