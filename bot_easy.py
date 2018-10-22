@@ -7,11 +7,14 @@ from function import Interface
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
 
-API_TOKEN = "API_TOKEN"
+API_TOKEN = "638630435:AAHf0P4SXPG5JS_6k9e4cgjN9fLdqPvuVvY"
 bot = telebot.TeleBot(API_TOKEN)
-server = "hypnos.feralhosting.com"
-signature = "server_feralhosting"
+server = None
+signature = None
 interface = Interface()
+signature_list = {
+    "FeralHosting":"server_feralhosting"
+}
 host_list = {
     "server_feralhosting":"hypnos.feralhosting.com"
 }
@@ -52,8 +55,9 @@ def server_markup():
     markup = types.InlineKeyboardMarkup()
     markup.row_width = 2
     markup.add(
-        types.InlineKeyboardButton("FeralHosting", callback_data="server_feralhosting"))
+        types.InlineKeyboardButton("FeralHosting", switch_inline_query_current_chat="server FeralHosting"))
     return markup
+
 
 
 def command_markup():
@@ -66,9 +70,11 @@ def command_markup():
 def files_markup(markup):
     return markup
 
+"""
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     global server
+    global signature
     if call.data == "server_feralhosting":
         bot.answer_callback_query(call.id, "Connecting to feralhosting")
         signature = call.data
@@ -76,6 +82,7 @@ def callback_query(call):
 
     if call.data == "command_list":
         pass
+"""
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -99,16 +106,39 @@ def cd_directory(message):
         else:
             _cd(message)
 
+@bot.message_handler(commands=['server'])
+def choose_server(message):
+    global server
+    global signature
+    if check_master(message.chat.id):
+        s = message.text.split(" ")
+        if len(s)==1:
+            bot.send_message(message.chat.id, "Choose a server", reply_markup=server_markup())
+        else:
+            try:
+                signature = signature_list[s[1]]
+                server = host_list[signature]
+                bot.reply_to(message, "Set server successfully.")
+            except:
+                bot.reply_to(message, "Set server failed.")
+
 
 @bot.message_handler(func=lambda message: True)
-def echo_message(message):
+def parse_command(message):
     if message.text[:18] == "@etenalJennyBot ls":
-        message.text = message.text[18:]
+        message.text = message.text[16:]
+        logging.debug("[parse command] "+message.text)
         list_files(message)
 
     if message.text[:18] == "@etenalJennyBot cd":
-        message.text = message.text[18:]
+        message.text = message.text[16:]
+        logging.debug("[parse command] " + message.text)
         cd_directory(message)
+
+    if message.text[:22] == "@etenalJennyBot server":
+        message.text = message.text[16:]
+        logging.debug("[parse command] " + message.text)
+        choose_server(message)
 
 
 bot.remove_webhook()

@@ -7,6 +7,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 logging.basicConfig(level=logging.DEBUG)
 
+base_max_count = 70
 download_url = {
     "server_feralhosting":u"http://cloud.etenal.me/download/"
 }
@@ -43,6 +44,8 @@ class Interface():
         self.connection = None
         self.socket_instance = None
         self.pwd = None
+        self.subpath = ""
+        self.max_count = base_max_count
 
     def is_alive(self, signature):
         try:
@@ -62,6 +65,7 @@ class Interface():
         self.socket_instance.connect((HOST, PORT))
         self.connection = signature
         self.pwd = base_path[signature]
+        self.url_length = 94
         return True
 
 
@@ -95,10 +99,12 @@ class Interface():
     def fc_list(self, HOST, signature, offset):
         logging.debug("[list enter] host:" + HOST)
         self.connection_check(HOST, signature)
-        command = u'ls ' + self.pwd
+        command = u'ls ' + self.pwd + self.subpath
         logging.debug("[list sending message] "+command)
         send_msg(self.socket_instance, command.encode('utf-8'))
         data = recv_msg(self.socket_instance)
+        if data==None:
+            self.close_socket()
         logging.debug("[list outcoming message] "+data)
         r = self.parse_data(data)
         markup = InlineKeyboardMarkup()
@@ -108,20 +114,23 @@ class Interface():
 
 
         all_files = sorted(r['receive'],key= lambda i: i['name'])
-        count = 0
+        count = 1
+        self.url_length = 94
+        logging.debug("[new max count] "+str(self.max_count))
         for file in all_files[offset:]:
             count += 1
             if file['type']=='file':
+                self.url_length +=
                 button_list.append(
-                    InlineKeyboardButton(file['name'],url=download_url[signature]+file['name'])
+                    InlineKeyboardButton(file['name'],url=download_url[signature]+self.subpath+file['name'])
                 )
             else:
                 button_list.append(
                     InlineKeyboardButton(file['name'], switch_inline_query_current_chat='cd '+file['name'])
                 )
-            if count == 49:
+            if count >= self.max_count:
                 button_list.append(
-                    InlineKeyboardButton("More", switch_inline_query_current_chat='ls +'+str(offset+50))
+                    InlineKeyboardButton("More", switch_inline_query_current_chat='ls +'+str(offset+self.max_count))
                 )
                 break
         markup.add(*button_list)
@@ -131,10 +140,16 @@ class Interface():
     def fc_cd(self,HOST, signature, _dir):
         self.connection_check(HOST, signature)
         if _dir == u"..":
-            a = self.pwd[:self.pwd.rfind(u"/",0,len(self.pwd)-1)]
-            self.pwd = a
+            try:
+                p = self.subpath.rfind(u"/", 0, len(self.subpath) - 1)
+                if p == -1:
+                    p=0
+                a = self.subpath[:p]
+            except:
+                a = ""
+            self.subpath = a
         else:
-            self.pwd += _dir
+            self.subpath += _dir
         if not self.pwd.endswith(u"/"):
-            self.pwd += u"/"
+            self.subpath += u"/"
 
